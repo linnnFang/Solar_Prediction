@@ -1,0 +1,3 @@
+# Edit your paths here — this is the only file you need to touch.
+gefcom_dir: /Users/lin_/Solar_Prediction/data/raw/GEFCOM
+processed_dir: /Users/lin_/Solar_Prediction/data/process
