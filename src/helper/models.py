@@ -41,8 +41,9 @@ class SklearnForecaster(BaseForecaster):
     def __init__(self, estimator):
         self.estimator = estimator
 
-    def fit(self, X, y):
-        self.estimator.fit(X, y)
+    def fit(self, X, y, **fit_params):
+        """Train the estimator; extra kwargs (e.g. eval_set) pass through to it."""
+        self.estimator.fit(X, y, **fit_params)
         return self
 
     def predict(self, X):

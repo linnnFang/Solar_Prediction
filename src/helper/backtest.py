@@ -9,7 +9,46 @@ tuned freely (e.g. "30D", "7D", or pd.DateOffset(months=1)).
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
+
+
+def time_split(df, fracs, time_col="ts"):
+    """
+    Split df into consecutive, time-ordered parts by fraction of unique timestamps.
+
+    `fracs` are proportions that sum to 1, e.g. (0.70, 0.15, 0.15) for
+    train/val/test. Cut points fall *on* timestamps, so every row sharing a
+    timestamp stays in the same part and no future leaks into an earlier part.
+    Returns a list of DataFrames in chronological order (one per entry in fracs).
+    """
+    ts = np.sort(df[time_col].unique())
+    n = len(ts)
+    cum, cuts = 0.0, []
+    for f in fracs[:-1]:
+        cum += f
+        cuts.append(ts[int(n * cum)])
+
+    t, prev, parts = df[time_col], None, []
+    for cut in cuts + [None]:
+        if prev is None:
+            parts.append(df[t < cut])
+        elif cut is None:
+            parts.append(df[t >= prev])
+        else:
+            parts.append(df[(t >= prev) & (t < cut)])
+        prev = cut
+    return parts
+
+
+def tail_val_split(df, frac=0.15, time_col="ts"):
+    """
+    Hold out the last `frac` of timestamps as a validation set.
+
+    Returns (train, val) where val is always chronologically *after* train, so
+    it stays a valid early-stopping split inside a walk-forward fold.
+    """
+    return tuple(time_split(df, (1 - frac, frac), time_col))
 
 
 def _as_offset(x):

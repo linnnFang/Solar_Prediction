@@ -1,0 +1,45 @@
+# Model hyperparameters — tune here, not in the notebooks.
+# Each top-level key is a preset name used by build_model(name, **get_params(preset)).
+
+# XGBoost with early stopping (baseline section 4). n_estimators is an upper bound;
+# training stops early using the eval_set supplied in the notebook.
+xgboost_tuned:
+  n_estimators: 2000
+  learning_rate: 0.02
+  max_depth: 5
+  subsample: 0.8
+  colsample_bytree: 0.8
+  min_child_weight: 5
+  reg_lambda: 1.0
+  objective: reg:squarederror
+  eval_metric: rmse
+  early_stopping_rounds: 5
+  n_jobs: -1
+  random_state: 42
+  enable_categorical: true
+
+# Fixed-budget presets for the 3-model comparison (baseline section 6).
+xgboost:
+  n_estimators: 400
+  learning_rate: 0.05
+  max_depth: 5
+  subsample: 0.8
+  colsample_bytree: 0.8
+  n_jobs: -1
+  random_state: 42
+
+lightgbm:
+  n_estimators: 400
+  learning_rate: 0.05
+  max_depth: 5
+  subsample: 0.8
+  colsample_bytree: 0.8
+  n_jobs: -1
+  random_state: 42
+  verbose: -1
+
+rf:
+  n_estimators: 300
+  max_depth: 12
+  n_jobs: -1
+  random_state: 42
