@@ -21,3 +21,7 @@ env/
 
 # Specific notebooks
 DEFCOM_analysis.ipynb
+
+# docs
+docs/*
+!docs/journal.md
