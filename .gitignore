@@ -26,3 +26,6 @@ DEFCOM_analysis.ipynb
 docs/*
 !docs/journal.md
 !docs/literature/
+
+# 实验产物（模型权重太大）
+artifacts/
