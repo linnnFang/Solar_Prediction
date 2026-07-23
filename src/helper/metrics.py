@@ -59,3 +59,70 @@ def monthly_accuracy(df, cap=1.0, time_col="ts_local", zone_col="ZONE"):
     monthly = daily.groupby([zone_col, "_month"]).mean()
     monthly.index = monthly.index.set_names([zone_col, "month"])
     return monthly
+
+
+def monthly_accuracy_15min(
+    df,
+    time_col="target_ts",
+    site_col="site",
+    capacity_col="capacity",
+):
+    """Score individual 15-minute predictions within each site-month.
+
+    The monthly MAE and RMSE are computed over all 15-minute target points in
+    that month, then normalised by that station's capacity.  This intentionally
+    differs from ``monthly_accuracy`` above, which first computes daytime daily
+    scores for the GEFCom day-ahead task.
+
+    Required columns: ``y_true``, ``y_pred``, time/site/capacity columns.
+    Returns one row per site-month plus raw errors and sample counts.
+    """
+    required = {time_col, site_col, capacity_col, "y_true", "y_pred"}
+    missing = sorted(required.difference(df.columns))
+    if missing:
+        raise ValueError(f"monthly_accuracy_15min missing columns: {missing}")
+
+    work = df[list(required)].dropna().copy()
+    work[time_col] = pd.to_datetime(work[time_col])
+    work["month"] = work[time_col].dt.to_period("M")
+
+    def _score(group):
+        capacities = group[capacity_col].unique()
+        if len(capacities) != 1:
+            raise ValueError("capacity must be constant within each site-month")
+        cap = float(capacities[0])
+        mae = _mae(group["y_true"], group["y_pred"])
+        rmse = _rmse(group["y_true"], group["y_pred"])
+        return pd.Series({
+            "n_15min": len(group),
+            "mae_mw": mae,
+            "rmse_mw": rmse,
+            "acc_mae": 1 - mae / cap,
+            "acc_rmse": 1 - rmse / cap,
+        })
+
+    return (
+        work.groupby([site_col, "month"], sort=True, observed=True)
+        # Select value columns before apply for compatibility with both older
+        # pandas (no include_groups keyword) and newer pandas (where grouping
+        # columns inside apply are deprecated).
+        [[capacity_col, "y_true", "y_pred"]]
+        .apply(_score)
+        .reset_index()
+    )
+
+
+def mean_monthly_accuracy(monthly, site_col="site"):
+    """Arithmetic mean of monthly accuracy rows, reported per site and overall."""
+    per_site = (
+        monthly.groupby(site_col, sort=True)[["acc_mae", "acc_rmse"]]
+        .mean()
+        .rename(columns={"acc_mae": "mean_monthly_acc_mae",
+                         "acc_rmse": "mean_monthly_acc_rmse"})
+        .reset_index()
+    )
+    overall = {
+        "mean_monthly_acc_mae": float(monthly["acc_mae"].mean()),
+        "mean_monthly_acc_rmse": float(monthly["acc_rmse"].mean()),
+    }
+    return per_site, overall
