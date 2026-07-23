@@ -25,3 +25,4 @@ DEFCOM_analysis.ipynb
 # docs
 docs/*
 !docs/journal.md
+!docs/literature/
